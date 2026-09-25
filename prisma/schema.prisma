@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
+}
+
+enum AccountKind {
+  BANK
+  SAVINGS
+  WALLET
+  CASH
+}
+
+/// A label you make yourself ("Groceries", "Car", "Eid"). An expense can carry several.
+model Tag {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  /// One of the palette keys in src/lib/tags.ts.
+  color     String    @default("stone")
+  expenses  Expense[]
+  createdAt DateTime  @default(now())
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  description String
+  amount      Float
+  date        DateTime @default(now())
+  note        String?
+  tags        Tag[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([date])
+}
+
+/// A place money sits. The balance is what you last saw in the bank app — you update it by hand.
+model Account {
+  id               String      @id @default(cuid())
+  name             String
+  bank             String?
+  kind             AccountKind @default(BANK)
+  balance          Float       @default(0)
+  balanceUpdatedAt DateTime    @default(now())
+  incomes          Income[]
+  createdAt        DateTime    @default(now())
+}
+
+/// Money that came in: salary, freelance, rent, a gift.
+model Income {
+  id        String   @id @default(cuid())
+  source    String
+  amount    Float
+  date      DateTime @default(now())
+  note      String?
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([date])
+}
